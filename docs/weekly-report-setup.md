@@ -12,7 +12,7 @@
 1. gitリポジトリ作成
 2. Docker-Compose作成→起動（PostgreSQL）
 3. DBeaver インストール・DB接続確認
-4. GO（バックエンド）
+4. FastAPI（バックエンド）
 5. Next（フロントエンド）
 ```
 
@@ -28,9 +28,24 @@ git init
 
 # .gitignore作成
 cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.uv/
+.venv/
+*.egg-info/
+
+# JavaScript
 node_modules/
+.next/
+out/
+
+# 環境変数
 .env
 .env.local
+
+# その他
 *.log
 .DS_Store
 dist/
@@ -154,99 +169,153 @@ SELECT * FROM users;
 - **クエリ履歴**: 過去に実行したクエリを再利用
 - **エクスポート**: データを CSV/JSON 等で出力
 
-## 4. GO（バックエンド）
+## 4. FastAPI（バックエンド）
 
-### ディレクトリ作成
+### uv インストール
+
+**公式サイト**: <https://docs.astral.sh/uv/>
 
 ```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# インストール確認
+uv --version
+```
+
+### プロジェクト作成
+
+```bash
+# バックエンドディレクトリ作成・移動
 mkdir backend
 cd backend
+
+# uv でプロジェクト初期化
+uv init
+
+# 依存パッケージ追加
+uv add fastapi uvicorn psycopg2-binary python-dotenv
+
+# Ruff（lint + format）追加
+uv add --dev ruff
 ```
 
-### Go 初期化
+### pyproject.toml（自動生成）
 
-```bash
-# Goモジュール初期化
-go mod init weekly-report
+```toml
+[project]
+name = "weekly-report-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "psycopg2-binary",
+    "python-dotenv",
+]
 
-# 必要なパッケージインストール
-go get github.com/gin-gonic/gin
-go get github.com/lib/pq
+[tool.uv]
+dev-dependencies = [
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
 ```
 
-### main.go 作成（最小構成）
+### main.py 作成（最小構成）
 
-```go
-package main
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
+import os
 
-import (
- "database/sql"
- "log"
- "net/http"
+app = FastAPI()
 
- "github.com/gin-gonic/gin"
- _ "github.com/lib/pq"
+# CORS設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-func main() {
- // DB接続
- db, err := sql.Open("postgres", "postgres://dev:dev@localhost:5432/weekly_report?sslmode=disable")
- if err != nil {
-  log.Fatal(err)
- }
- defer db.Close()
+# DB接続設定
+DATABASE_URL = "postgresql://dev:dev@localhost:5432/weekly_report"
 
- // 接続確認
- if err := db.Ping(); err != nil {
-  log.Fatal(err)
- }
- log.Println("DB connected!")
+@contextmanager
+def get_db_connection():
+    conn = psycopg2.connect(DATABASE_URL)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
- // Ginルーター
- r := gin.Default()
+@app.get("/")
+def read_root():
+    return {"message": "Weekly Report API"}
 
- // ヘルスチェック
- r.GET("/health", func(c *gin.Context) {
-  c.JSON(http.StatusOK, gin.H{"status": "ok"})
- })
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
- // ユーザー一覧
- r.GET("/users", func(c *gin.Context) {
-  rows, err := db.Query("SELECT id, name FROM users")
-  if err != nil {
-   c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-   return
-  }
-  defer rows.Close()
-
-  var users []map[string]interface{}
-  for rows.Next() {
-   var id int
-   var name string
-   rows.Scan(&id, &name)
-   users = append(users, map[string]interface{}{
-    "id":   id,
-    "name": name,
-   })
-  }
-
-  c.JSON(http.StatusOK, users)
- })
-
- // サーバー起動
- r.Run(":8080")
-}
+@app.get("/users")
+def get_users():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT id, name FROM users")
+                users = cursor.fetchall()
+                return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 ```
 
-### バックエンド起動確認
+### Ruff 設定・実行
+
+```bash
+# コード整形
+uv run ruff format .
+
+# Lint実行
+uv run ruff check .
+
+# 自動修正
+uv run ruff check --fix .
+```
+
+### 起動確認
 
 ```bash
 # サーバー起動
-go run main.go
+uv run uvicorn main:app --reload
 
 # 別ターミナルで確認
-curl http://localhost:8080/health
-curl http://localhost:8080/users
+curl http://localhost:8000/health
+curl http://localhost:8000/users
+
+# ブラウザで確認（自動生成されたAPIドキュメント）
+# http://localhost:8000/docs
+```
+
+### .env 作成（オプション）
+
+```bash
+# backend/.env
+DATABASE_URL=postgresql://dev:dev@localhost:5432/weekly_report
+```
+
+main.py で使用：
+
+```python
+from dotenv import load_dotenv
+
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 ```
 
 ### バックエンドコミット
@@ -254,10 +323,21 @@ curl http://localhost:8080/users
 ```bash
 cd ..  # プロジェクトルートに戻る
 git add backend/
-git commit -m "feat: add Go backend with /users endpoint"
+git commit -m "feat: add FastAPI backend"
 ```
 
-## 5. Next（フロントエンド）
+## 5. Next（フロントエンド）with Bun
+
+### Bun インストール
+
+**公式サイト**: <https://bun.sh>
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+
+# インストール確認
+bun --version
+```
 
 ### Next.js 作成
 
@@ -266,8 +346,8 @@ git commit -m "feat: add Go backend with /users endpoint"
 mkdir frontend
 cd frontend
 
-# Next.js初期化
-npx create-next-app@latest . --typescript --tailwind --app --no-src-dir
+# Next.js 初期化
+bun create next-app . --typescript --tailwind --app --no-src-dir
 
 # 依存パッケージインストール済み
 ```
@@ -290,7 +370,7 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/users')
+    fetch('http://localhost:8000/users')
       .then((res) => res.json())
       .then((data) => setUsers(data))
       .catch((err) => console.error(err));
@@ -312,32 +392,22 @@ export default function Home() {
 ### フロントエンド起動確認
 
 ```bash
-npm run dev
+bun dev
+
 # → http://localhost:3000 にアクセス
 ```
 
-### CORS 設定（必要な場合）
-
-Go 側の `main.go` に追加：
-
-```go
-import "github.com/gin-contrib/cors"
-
-// ...
-
-r := gin.Default()
-
-// CORS設定
-r.Use(cors.New(cors.Config{
-    AllowOrigins: []string{"http://localhost:3000"},
-    AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
-}))
-```
+### パッケージ追加（例）
 
 ```bash
-# パッケージインストール
-cd backend
-go get github.com/gin-contrib/cors
+# React Query（データフェッチ・キャッシュ）
+bun add @tanstack/react-query
+
+# OpenAPI → TypeScript 型生成
+bun add -d openapi-typescript
+
+# 開発用パッケージ
+bun add -d @types/node
 ```
 
 ### フロントエンドコミット
@@ -345,7 +415,7 @@ go get github.com/gin-contrib/cors
 ```bash
 cd ..  # プロジェクトルートに戻る
 git add frontend/
-git commit -m "feat: add Next.js frontend with user list"
+git commit -m "feat: add Next.js frontend"
 ```
 
 ## 最初の 30 分でやること
@@ -364,13 +434,18 @@ docker-compose up -d
 # DBeaver起動 → PostgreSQLに接続
 # usersテーブル作成
 
-# 4. Go実装（10分）
-# backend/main.go作成
-go run main.go
+# 4. FastAPI実装（10分）
+cd backend
+uv init
+uv add fastapi uvicorn psycopg2-binary
+# main.py作成
+uv run uvicorn main:app --reload
 
 # 5. Next実装（5分）
-# frontend/app/page.tsx編集
-npm run dev
+cd ../frontend
+bun create next-app .
+# app/page.tsx編集
+bun dev
 ```
 
 ## ディレクトリ構成
@@ -380,11 +455,13 @@ weekly-report/
 ├── .gitignore
 ├── docker-compose.yml
 ├── backend/
-│   ├── go.mod
-│   ├── go.sum
-│   └── main.go
+│   ├── .venv/              # uv が自動管理
+│   ├── pyproject.toml      # uv の設定ファイル
+│   ├── uv.lock             # 依存関係のロックファイル
+│   └── main.py
 └── frontend/
     ├── package.json
+    ├── bun.lockb           # Bun のロックファイル
     ├── next.config.js
     └── app/
         └── page.tsx
@@ -417,56 +494,90 @@ docker-compose restart db
 3. PostgreSQL ドライバーが正しくインストールされているか確認
 4. DBeaver を再起動
 
-### Go でエラー
+### FastAPI でエラー
 
 ```bash
-# 依存パッケージ再取得
-go mod tidy
+# uv の同期確認
+uv sync
 
+# 依存パッケージ再インストール
+uv pip install -r pyproject.toml
+
+# ポート確認（8000が使用中の場合）
+uv run uvicorn main:app --reload --port 8001
+```
+
+### psycopg2 インストールエラー
+
+```bash
+# macOS
+brew install postgresql
+
+# Ubuntu/Debian
+sudo apt-get install libpq-dev
+
+# Windows
+# psycopg2-binaryを使用（既に指定済み）
+```
+
+### Bun でエラー
+
+```bash
 # キャッシュクリア
-go clean -modcache
+bun pm cache rm
+
+# 依存関係再インストール
+rm -rf node_modules bun.lockb
+bun install
 ```
 
 ### Next.js で CORS エラー
 
-- Go 側に CORS 設定を追加（上記参照）
+- FastAPI 側の CORS 設定を確認（上記参照）
 - ブラウザの開発者ツールでエラー内容確認
+- FastAPI が起動しているか確認
 
-## PostgreSQL GUI ツール比較（参考）
+## モダンツールチェーン選定理由
 
-### 採用：DBeaver
+### Python: uv を採用
+
+**2025 年の状況**:
+
+- uv は pip の 10-100 倍高速で、pip、pip-tools、virtualenv、poetry を単一ツールで置き換える
+- Rust 製で爆速
+- オールインワン（仮想環境 + パッケージ管理）
+- `pyproject.toml` による標準的な設定
 
 **選定理由**:
 
-- 業界標準で最も人気のある PostgreSQL GUI ツール
-- 実務でも広く使われている（転職時のアピール材料）
-- ER 図の自動生成、データエクスポート、クエリ履歴管理など高機能
-- RLS 学習に有利（複数ユーザーセッションの切り替えが容易）
-- 長期的に使えるスキル
+- **venv/pip は古い**：学習教材レベルのツール
+- **業界トレンド**：2024 年リリース、急速に普及中
+- **開発体験**：依存関係の解決が瞬時
+- **Ruff 統合**：同じ Astral チーム製、相性抜群
 
-### その他の選択肢
+### JavaScript: Bun を採用
 
-#### VSCode 拡張
+**2025 年の状況**:
 
-- 学習コスト最小
-- エディタで完結
-- 機能は限定的
+- Bun は Next.js、Express に対応し、npm の 10-20 倍高速、3-4 倍の HTTP スループット
+- ランタイム + パッケージマネージャー + バンドラー + テストランナー
+- JavaScriptCore（Safari）ベース
 
-#### pgAdmin（PostgreSQL 公式）
+**選定理由**:
 
-- PostgreSQL 専用
-- 管理者向け
-- UI が複雑
+- **npm/yarn は遅い**：パッケージインストールに時間がかかる
+- **オールインワン**：追加ツール不要
+- **Next.js 対応**：公式サポート
+- **学習コスト低**：npm と同じコマンド体系
 
-### まとめ
+### 従来ツールとの比較
 
-個人開発・MVP 段階でも**DBeaver を採用**：
-
-- 少しの学習コストで長く使える
-- 実務スキルとして価値がある
-- RLS 実装時に役立つ機能が豊富
-
-VSCode 拡張は「楽」だが、学習・転職アピール目的なら DBeaver が最適。
+| ツール      | 従来                         | 2025 年                          | 速度比較      |
+| ----------- | ---------------------------- | -------------------------------- | ------------- |
+| Python 環境 | venv + pip                   | **uv**                           | 10-100 倍高速 |
+| Lint/Format | black + flake8 + isort       | **Ruff**                         | 10-100 倍高速 |
+| JS 環境     | npm/yarn                     | **Bun**                          | 10-20 倍高速  |
+| 開発体験    | ツール分散、設定ファイル多数 | オールインワン、設定ファイル最小 | 圧倒的改善    |
 
 ## Next Step
 
@@ -476,5 +587,3 @@ VSCode 拡張は「楽」だが、学習・転職アピール目的なら DBeave
 2. **週報 CRUD API 実装**
 3. **週報投稿画面実装**
 4. **デプロイ（Fly.io + Vercel + Neon）**
-
-まずは動かしてみて、困ったことがあればその時に調べましょう！

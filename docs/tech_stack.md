@@ -1,108 +1,184 @@
-# 技術スタック選定（学習コスト指標付き）
+# Tech Stack
 
-> 目的：RLS（Row Level Security）を PostgreSQL で実践し、Next.js + Go/Gin による Web システムとして MVP を構築する。  
-> 「学習コスト」「対抗技術との比較」「採用理由」を明文化する。
+## 1. Overview
 
----
-
-## 1. フロントエンド
-
-**技術：Next.js**  
-**学習コスト：中（React 経験があれば低）**
-
-### 採用理由
-
-- 認証（NextAuth.js）が標準化されている
-- v0 による UI 自動生成で MVP が高速化
-
-### 対抗トレンド（比較）
-
-- Remix：SSR に優れるが採用市場は狭い
-- SvelteKit：学習コスト中、採用実績は少なめ
+本プロジェクトは、Next.js（App Router）をフロントエンド、FastAPI をバックエンド、Neon を DB として採用したモダン構成の週報アプリである。  
+MVP 規模ながらも、本番運用と拡張性を意識した技術選定を行う。
 
 ---
 
-## 2. バックエンド
+## 2. Frontend
 
-**技術：Go + Gin**  
-**学習コスト：中**
+### 2.1 Framework
 
-### 採用理由
+- **Next.js 15（App Router）**
+  - Server Components 標準
+  - fetch ベースのデータ取得
+  - Vercel デプロイとの相性が最適
 
-- middleware で `SET app.current_user_id` を実装可能
-- RLS をアプリ側ではなく DB 側に委譲できる
-- 単体バイナリでデプロイが容易
+### 2.2 UI / Styling
 
-### 対抗トレンド（比較）
+- **Tailwind CSS**
+- **shadcn/ui**（コンポーネント）
+  - ダッシュボード UI、フォーム、ダイアログで利用
 
-- FastAPI：学習コスト低だが DB 側制御の思想が薄い
-- Fiber：高速だがエコシステムが小さい
+### 2.3 Data Fetching / State
 
----
+- **React Query (@tanstack/react-query)**
+  - API キャッシュ管理
+  - リトライ制御・通信安定性向上
 
-## 3. SQL レイヤー
+### 2.4 API 型管理
 
-**技術：sqlc + pgx（明記）**  
-**学習コスト：中（SQL 理解が前提）**
+- **openapi-typescript**（FastAPI → TS 型生成）
+  - 型安全な API クライアント生成を支援
 
-### 採用理由
+### 2.5 Lint / Format
 
-- RLS を扱うため生 SQL を維持したい
-- `pgx` は Go における事実上の標準 PostgreSQL driver
-- 型安全かつ明示的なクエリ制御
-
-### 対抗トレンド（比較）
-
-- GORM：抽象化により RLS が破壊される可能性
-- Prisma：Node 向けで Go とは整合しない
+- ESLint
+- Prettier
+- Tailwind Plugin
 
 ---
 
-## 4. DB / マイグレーション
+## 3. Backend
 
-**技術：PostgreSQL + golang-migrate + atlas（検討）**  
-**学習コスト：中**
+### 3.1 Framework
 
-### 採用理由
+- **FastAPI**
+  - 高速・型安全
+  - OpenAPI 自動生成による型連携が容易
 
-- PostgreSQL の RLS を直接利用
-- schema / policy をファイル管理しやすい
+### 3.2 Directory Layout
 
-### 改善点
+```bash
+app/
+├── main.py
+├── routers/
+│   ├── users.py
+│   └── reports.py
+├── schemas/
+│   ├── user.py
+│   └── report.py
+├── services/
+│   └── report_service.py
+└── db/
+    ├── prisma_client.py
+    └── session.py
+```
 
-- **atlas の採用検討**
-  - schema diff が視覚化される
-  - RLS ポリシー差分管理に有利
+### 3.3 ORM / Migration
+
+- **Prisma for Python**（ORM）
+- **Prisma Migrate**（Migration）
+  - schema.prisma → migration → DB 反映まで一括で管理
+
+### 3.4 DB Driver
+
+- **psycopg v3**
+  - PostgreSQL の標準ドライバ
+  - 同期/非同期どちらも利用可能
+
+### 3.5 Environment
+
+- **pydantic-settings** による設定管理
+- `.env` に環境変数を保持
+
+### 3.6 Tooling
+
+- Ruff（Lint / Format）
 
 ---
 
-## 5. 認証（MVP → 拡張）
+## 4. Database
 
-**技術：X-User-ID → NextAuth.js**  
-**学習コスト：低 → 中**
+### 4.1 Environment
 
-### 採用理由
+- **PostgreSQL**
 
-- MVP ではヘッダのみでユーザー識別
-- 後から OAuth 追加可能
+### 4.2 Production
 
----
+- **Neon**（Serverless Postgres）
+  - Branching が容易（開発用 DB 作成が簡単）
 
-## 6. 学習コストまとめ
+### 4.3 Local Development
 
-| 層  | 技術                         | 学習コスト | 理由                          |
-| --- | ---------------------------- | ---------- | ----------------------------- |
-| 1   | Next.js                      | 中         | UI/UX、認証対応               |
-| 2   | Go + Gin                     | 中         | middleware でユーザー情報注入 |
-| 3   | sqlc + pgx                   | 中         | RLS の最適解                  |
-| 4   | PostgreSQL + migrate + atlas | 中         | RLS 管理とマイグレーション    |
+- Docker Compose 内に PostgreSQL を構築
 
 ---
 
-## 7. 全体結論
+## 5. Infrastructure / DevOps
 
-- **pgx の明記と atlas の検討**が改善点
-- RLS 学習、および転職アピール用途として合理的な選択
-- ORM を避け、生 SQL の理解を深める点が評価対象になる
+### 5.1 Container
+
+- **すべて Docker 化**
+
+  - Next.js
+  - FastAPI
+  - DB
+
+### 5.2 Deployment
+
+- **Vercel**：Next.js
+- **Fly.io**：FastAPI
+- **Neon**：PostgreSQL
+
+### 5.3 API Spec
+
+- FastAPI 標準の OpenAPI を採用
+- publish → openapi-typescript により型生成
 
 ---
+
+## 6. Authentication
+
+- **NextAuth.js（Auth.js）**
+
+  - OAuth / Email link などを利用想定
+  - 後で導入可能な構成
+
+---
+
+## 7. Scripts（Frontend）
+
+### パッケージ追加
+
+```bash
+# React Query
+bun add @tanstack/react-query
+
+# 型生成
+bun add -d openapi-typescript
+
+# 型安全なfetchクライアント（任意）
+bun add openapi-fetch
+```
+
+---
+
+## 8. Scripts（Backend）
+
+```bash
+# Prisma CLI
+pip install prisma
+
+# Migration
+prisma migrate dev
+
+# Client生成
+prisma generate
+```
+
+---
+
+## 9. Quality / Coding Standard
+
+- Backend: Ruff
+- Frontend: ESLint + Prettier
+- Commit hooks（必要に応じて導入）
+
+---
+
+## 10. Summary
+
+Next.js と FastAPI を中心に、型安全・モダン・メンテナブルな構成に統一した。特に Prisma + openapi-typescript による型の一貫性は、バグ削減と開発効率向上に強く寄与する。今後は認証（NextAuth.js）と CI/CD 構築を追加予定。
