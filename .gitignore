@@ -1,6 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.uv/
+.venv/
+*.egg-info/
+
+# JavaScript
 node_modules/
+.next/
+out/
+
+# 環境変数
 .env
 .env.local
+
+# その他
 *.log
 .DS_Store
 dist/
