@@ -21,3 +21,4 @@ out/
 dist/
 build/
 .next/
+.vscode/
