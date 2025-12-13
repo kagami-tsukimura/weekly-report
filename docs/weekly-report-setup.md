@@ -60,62 +60,68 @@ git commit -m "chore: initial commit"
 
 ## 2. Docker-Compose 作成 → 起動
 
-### docker-compose.yml 作成
+### compose.yaml 作成
 
 ```yaml
-version: '3.8'
-
 services:
-  db:
-    image: postgres:16
-    container_name: weekly-report-db
-    environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
-      POSTGRES_DB: weekly_report
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+frontend:
+build: ./frontend
+ports:
+- "3000:3000"
+volumes:
+- ./frontend:/app
+environment:
+- NEXT_PUBLIC_API_URL=http://localhost:8000
+command: ["bun", "dev"]
+
+
+backend:
+build: ./backend
+ports:
+- "8000:8000"
+volumes:
+- ./backend:/app
+environment:
+- DATABASE_URL=postgresql://dev:dev@db:5432/weekly_report
+command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+db:
+image: postgres:16
+environment:
+POSTGRES_USER: dev
+POSTGRES_PASSWORD: dev
+POSTGRES_DB: weekly_report
+ports:
+- "5432:5432"
+volumes:
+- postgres_data:/var/lib/postgresql/data
+
 
 volumes:
-  postgres_data:
+postgres_data:
 ```
 
 ### 起動
 
 ```bash
 # PostgreSQL起動
-docker-compose up -d
+docker compose up -d
 
 # 起動確認
-docker-compose ps
+docker compose ps
 
 # ログ確認
-docker-compose logs db
+docker compose logs db
 
 # コミット
-git add docker-compose.yml
+git add compose.yaml
 git commit -m "feat: setup PostgreSQL with Docker"
 ```
 
-## 3. DBeaver インストール・DB 接続確認
-
-### DBeaver インストール
+## 3. DBeaver DB 接続確認
 
 **公式サイト**: <https://dbeaver.io/download/>
-
-**インストール方法**:
-
-- **macOS**: Homebrew 推奨
-
-  ```bash
-  brew install --cask dbeaver-community
-  ```
-
-- **Windows**: インストーラーをダウンロードして実行
-
-- **Linux**: 各ディストリビューションのパッケージマネージャー
 
 ### DB 接続設定
 
@@ -193,7 +199,7 @@ cd backend
 uv init
 
 # 依存パッケージ追加
-uv add fastapi uvicorn psycopg2-binary python-dotenv
+uv add fastapi uvicorn "psycopg[binary]" python-dotenv
 
 # Ruff（lint + format）追加
 uv add --dev ruff
@@ -473,13 +479,13 @@ weekly-report/
 
 ```bash
 # コンテナ起動確認
-docker-compose ps
+docker compose ps
 
 # ログ確認
-docker-compose logs db
+docker compose logs db
 
 # 再起動
-docker-compose restart db
+docker compose restart db
 ```
 
 ### DBeaver で接続できない
@@ -487,7 +493,7 @@ docker-compose restart db
 1. PostgreSQL コンテナが起動しているか確認
 
    ```bash
-   docker-compose ps
+   docker compose ps
    ```
 
 2. 接続情報が正しいか確認（特にポート番号）
