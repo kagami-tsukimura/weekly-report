@@ -1,4 +1,46 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      target: base
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: ["bun", "dev"]
+    env_file:
+      - .env
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_started
+    # ホットリロードのためにコマンドを上書き（開発時のみ）
+    command:
+      [
+        'uv',
+        'run',
+        'uvicorn',
+        'main:app',
+        '--host',
+        '0.0.0.0',
+        '--port',
+        '8000',
+        '--reload',
+      ]
+
   db:
     image: postgres:16
     container_name: weekly-report-db
