@@ -60,8 +60,6 @@ def get_users():
 def get_reports():
     """Get all weekly reports.
 
-    Args:
-        report (schemas.ReportGet): Report data to get.
     Returns:
         List[schemas.Report]: All reports.
     Raises:
