@@ -70,7 +70,7 @@ def get_reports():
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    SELECT id, user_id, week_start, done, todo, issues, learning_hours, created_at, updated_at 
+                    SELECT id, user_id, week_start, done, todo, issues, learning_hours, created_at, updated_at
                     FROM reports
                     ORDER BY week_start DESC
                     """
