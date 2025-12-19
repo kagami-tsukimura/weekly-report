@@ -11,7 +11,7 @@ export type FormState = {
 };
 
 export async function createReport(
-	prevState: FormState,
+	_prevState: FormState,
 	formData: FormData,
 ): Promise<FormState> {
 	// fetch formData
