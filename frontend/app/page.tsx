@@ -1,5 +1,6 @@
 import { getReports } from "@/lib/api";
 import type { Report } from "@/types";
+import ReportForm from "./components/ReportForm";
 
 const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
 
@@ -24,6 +25,9 @@ export default async function Home() {
 
 	return (
 		<main className="p-8 max-w-4xl mx-auto">
+			<div className="mb-12">
+				<ReportForm />
+			</div>
 			<h1 className="text-4xl font-bold mt-20 mb-4">Reports</h1>
 			<div className="flex flex-col gap-6">
 				{reports.map((report) => (
