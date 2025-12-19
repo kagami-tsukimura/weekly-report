@@ -1,11 +1,12 @@
 import { getReports } from "@/lib/api";
 import type { Report } from "@/types";
 
+const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
+
 // コンポーネント自体を async にする
 export default async function Home() {
 	let reports: Report[] = [];
 	let error: string = "";
-	const unknownErrorMsg: string = "Unknown error occured";
 
 	try {
 		reports = await getReports();
@@ -13,7 +14,7 @@ export default async function Home() {
 		if (e instanceof Error) {
 			error = e.message;
 		} else {
-			error = unknownErrorMsg;
+			error = UNKNOWN_ERROR_MESSAGE;
 		}
 	}
 
@@ -22,7 +23,7 @@ export default async function Home() {
 	}
 
 	return (
-		<main className="p-8">
+		<main className="p-8 max-w-4xl mx-auto">
 			<h1 className="text-4xl font-bold mt-20 mb-4">Reports</h1>
 			<div className="flex flex-col gap-6">
 				{reports.map((report) => (
