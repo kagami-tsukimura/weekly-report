@@ -1,31 +1,42 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 
 import { createReport, type FormState } from "@/app/actions";
 
+const ENTER = "Enter";
 const initialState: FormState = {
 	message: "",
 };
 
 export default function ReportForm() {
-	// state: アクションの結果メッセージなど
-	// formAction: formタグのactionに渡す関数
-	// isPending: 送信中かどうか (これでボタンを無効化できる)
 	const [state, formAction, isPending] = useActionState(
 		createReport,
 		initialState,
 	);
 
+	const formRef = useRef<HTMLFormElement>(null);
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		// Ctrl or Command + Enter
+		if ((e.ctrlKey || e.metaKey) && e.key === ENTER) {
+			e.preventDefault();
+			// Submit Report
+			formRef.current?.requestSubmit();
+		}
+	};
+
 	return (
 		<form
+			ref={formRef}
 			action={formAction}
+			onKeyDown={handleKeyDown}
 			className="bg-gray-900 border border-gray-800 p-6 rounded-xl space-y-4"
 		>
 			<h2 className="text-xl font-bold mb-4 text-gray-100">
 				Create New Report
 			</h2>
 
-			{/* 結果メッセージ表示エリア */}
+			{/* Result Area */}
 			{state.message && (
 				<div
 					className={`p-3 rounded ${state.error ? "bg-red-900/50 text-red-200" : "bg-green-900/50 text-green-200"}`}
@@ -34,7 +45,7 @@ export default function ReportForm() {
 				</div>
 			)}
 
-			{/* 入力項目 (以前と同じですが、disabled={isPending} をつけられるのが強み) */}
+			{/* Input */}
 			<div>
 				<label
 					htmlFor="week_start"
@@ -51,9 +62,6 @@ export default function ReportForm() {
 				/>
 			</div>
 
-			{/* ... (他項目も同様に disabled={isPending} をつける) ... */}
-
-			{/* Learning Hours */}
 			<div>
 				<label
 					htmlFor="learning_hours"
@@ -71,7 +79,6 @@ export default function ReportForm() {
 				/>
 			</div>
 
-			{/* Done */}
 			<div>
 				<label
 					htmlFor="done"
@@ -88,7 +95,6 @@ export default function ReportForm() {
 				/>
 			</div>
 
-			{/* ToDo */}
 			<div>
 				<label
 					htmlFor="todo"
@@ -105,7 +111,6 @@ export default function ReportForm() {
 				/>
 			</div>
 
-			{/* Issues (Optional) */}
 			<div>
 				<label
 					htmlFor="issue"
