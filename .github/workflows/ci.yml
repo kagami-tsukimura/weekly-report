@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'develop']
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    branches: ['main', 'develop']
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081 # v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version-file: "backend/pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      - name: Format check with Ruff
+        run: uv run ruff format --check .
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type Check
+        run: bun x tsc --noEmit
+
+      - name: Lint (Biome)
+        run: bun x biome ci .
+
+      - name: Build Check
+        run: bun run build
+        env:
+          # Build API dummy
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          # NextAuth dummy
+          AUTH_SECRET: "dummy_secret_for_build_check"
+          AUTH_GITHUB_ID: "dummy"
+          AUTH_GITHUB_SECRET: "dummy"
+          AUTH_GOOGLE_ID: "dummy"
+          AUTH_GOOGLE_SECRET: "dummy"
+
+  notify:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: failure()
+    steps:
+      - name: Notify Slack on Failure
+        uses: rtCamp/action-slack-notify@cdf0a2130cbcdfd82ba5fcac8e076370bf381b36 # v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_COLOR: danger
+          SLACK_TITLE: '❌ CI Failed'
+          SLACK_MESSAGE: |
+            <@U06Q4AVJUPJ> CI workflow failed.
+            *Branch:* `${{ github.ref_name }}`
+            *Commit:* `${{ github.sha }}`
+            *Actor:* ${{ github.actor }}
+            *Details:* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_FOOTER: 'weekly-report CI'
