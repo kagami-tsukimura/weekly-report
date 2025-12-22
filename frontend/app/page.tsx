@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { auth, signOut } from "@/auth";
 import { getReports } from "@/lib/api";
 import type { Report } from "@/types";
@@ -5,7 +6,6 @@ import ReportForm from "./components/ReportForm";
 
 const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
 
-// コンポーネント自体を async にする
 export default async function Home() {
 	const session = await auth();
 
@@ -28,21 +28,42 @@ export default async function Home() {
 
 	return (
 		<main className="p-8 max-w-4xl mx-auto">
-			<div className="flex justify-between items-center mb-12">
+			<div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
 				<h1 className="text-4xl font-bold">Weekly Report</h1>
-				<form
-					action={async () => {
-						"use server";
-						await signOut({ redirectTo: "/login" });
-					}}
-				>
-					<button
-						type="submit"
-						className="rounded-lg bg-gray-500 px-4 py-2 text-white transition hover:bg-gray-600"
-					>
-						Logout
-					</button>
-				</form>
+				<div className="group relative flex items-center gap-4">
+					{session?.user?.image ? (
+						<Image
+							src={session.user.image}
+							alt="avatar"
+							width={48}
+							height={48}
+							className="cursor-pointer rounded-full"
+						/>
+					) : (
+						<div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gray-600 text-sm text-white">
+							{session?.user?.name?.charAt(0) ?? "?"}
+						</div>
+					)}
+					{/* Dropdown on hover */}
+					<div className="absolute right-0 top-full mt-2 w-24 rounded-lg bg-gray-800 p-2 text-center opacity-0 shadow-lg transition group-hover:opacity-100">
+						<p className="mb-2 border-b border-gray-700 px-3 py-2 text-sm text-gray-300">
+							{session?.user?.name}
+						</p>
+						<form
+							action={async () => {
+								"use server";
+								await signOut({ redirectTo: "/login" });
+							}}
+						>
+							<button
+								type="submit"
+								className="rounded-lg bg-gray-500 px-4 py-2 text-white transition hover:bg-gray-600"
+							>
+								Logout
+							</button>
+						</form>
+					</div>
+				</div>
 			</div>
 			<div className="mb-12">
 				<ReportForm />
