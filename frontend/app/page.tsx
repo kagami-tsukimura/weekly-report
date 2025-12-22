@@ -45,7 +45,7 @@ export default async function Home() {
 						</div>
 					)}
 					{/* Dropdown on hover */}
-					<div className="absolute right-0 top-full mt-2 w-24 rounded-lg bg-gray-800 p-2 text-center opacity-0 shadow-lg transition group-hover:opacity-100">
+					<div className="pointer-events-none absolute right-0 top-full pt-4 w-24 rounded-lg bg-gray-800 p-2 text-center opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:opacity-100">
 						<p className="mb-2 border-b border-gray-700 px-3 py-2 text-sm text-gray-300">
 							{session?.user?.name}
 						</p>
