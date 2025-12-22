@@ -1,3 +1,4 @@
+import { auth, signOut } from "@/auth";
 import { getReports } from "@/lib/api";
 import type { Report } from "@/types";
 import ReportForm from "./components/ReportForm";
@@ -6,6 +7,8 @@ const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
 
 // コンポーネント自体を async にする
 export default async function Home() {
+	const session = await auth();
+
 	let reports: Report[] = [];
 	let error: string = "";
 
@@ -25,6 +28,22 @@ export default async function Home() {
 
 	return (
 		<main className="p-8 max-w-4xl mx-auto">
+			<div className="flex justify-between items-center mb-12">
+				<h1 className="text-4xl font-bold">Weekly Report</h1>
+				<form
+					action={async () => {
+						"use server";
+						await signOut({ redirectTo: "/login" });
+					}}
+				>
+					<button
+						type="submit"
+						className="rounded-lg bg-gray-500 px-4 py-2 text-white transition hover:bg-gray-600"
+					>
+						Logout
+					</button>
+				</form>
+			</div>
 			<div className="mb-12">
 				<ReportForm />
 			</div>
