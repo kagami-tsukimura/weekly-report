@@ -21,15 +21,6 @@ CREATE TABLE reports (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- テストデータ
-INSERT INTO users (name, auth_id) VALUES 
-('Alice', 'user_1_secret'), 
-('Bob', 'user_2_secret');
-
-INSERT INTO reports (user_id, week_start, done, todo, issues, learning_hours) VALUES 
-(1, CURRENT_DATE, '開発環境構築', '週報モックの実装', '特になし', 2.5),
-(2, CURRENT_DATE, '要件定義', 'DB設計', '時間が足りない', 1.5);
-
 -- 権限付与
 GRANT USAGE ON SCHEMA public TO app_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;

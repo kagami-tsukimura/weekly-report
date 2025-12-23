@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 
 const API_BASE_URL = "http://backend:8000";
 const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
@@ -14,8 +15,12 @@ export async function createReport(
 	_prevState: FormState,
 	formData: FormData,
 ): Promise<FormState> {
-	// fetch formData
-	const user_id = 1;
+	// Get session
+	const session = await auth();
+	if (!session?.user?.authId) {
+		return { message: "Not authenticated", error: true };
+	}
+
 	const week_start = formData.get("week_start");
 	const done = formData.get("done");
 	const todo = formData.get("todo");
@@ -26,9 +31,12 @@ export async function createReport(
 		// post to backend
 		const res = await fetch(`${API_BASE_URL}/reports`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				"Content-Type": "application/json",
+				"X-Auth-ID": session.user.authId,
+				"X-User-Name": encodeURIComponent(session.user.name ?? ""),
+			},
 			body: JSON.stringify({
-				user_id,
 				week_start,
 				done,
 				todo,
