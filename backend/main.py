@@ -24,12 +24,36 @@ DATABASE_URL = os.getenv(
 )
 
 
-def get_db(x_auth_id: Annotated[str | None, Header()] = "user_1_secret"):
-    """DB接続を取得する"""
+def get_db(
+    x_auth_id: Annotated[str | None, Header()] = None,
+    x_user_name: Annotated[str | None, Header()] = None,
+):
+    """Get DB.
+    Args:
+        x_auth_id (str | None): User ID from the X-Auth-Id header.
+        x_user_name (str | None): User Name from the X-Auth-Id header.
+    """
+    if not x_auth_id:
+        raise HTTPException(status_code=401, detail="X-Auth-ID header required")
+
     try:
         conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
         with conn.cursor() as cur:
-            cur.execute(f"SET app.current_user_id = '{x_auth_id}'")
+            cur.execute("SELECT id FROM users WHERE auth_id = %s", (x_auth_id,))
+            user = cur.fetchone()
+
+            if not user:
+                name = x_user_name or x_auth_id.split(":")[0]
+                cur.execute(
+                    "INSERT INTO users (name, auth_id) VALUES (%s, %s)",
+                    (name, x_auth_id),
+                )
+                conn.commit()
+
+            cur.execute(
+                "SELECT set_config('app.current_user_id', %s, false)", (x_auth_id,)
+            )
+
         yield conn
     except Exception as e:
         print(f"Error connecting to DB: {e}")
@@ -50,6 +74,10 @@ def health_check():
 
 @app.get("/users")
 def get_users(conn=Depends(get_db)):
+    """Get all users.
+    Args:
+        conn (Any): Database connection dependency.
+    """
     try:
         with conn.cursor() as cur:
             cur.execute("SELECT id, name FROM users")
@@ -62,6 +90,8 @@ def get_users(conn=Depends(get_db)):
 def get_reports(conn=Depends(get_db)):
     """Get all weekly reports.
 
+    Args:
+        conn (Any): Database connection dependency.
     Returns:
         List[schemas.Report]: All reports.
     Raises:
@@ -83,19 +113,32 @@ def get_reports(conn=Depends(get_db)):
 
 
 @app.post("/reports", response_model=schemas.Report)
-def create_report(report: schemas.ReportCreate, conn=Depends(get_db)):
+def create_report(
+    report: schemas.ReportCreate,
+    x_auth_id: Annotated[str | None, Header()] = None,
+    conn=Depends(get_db),
+):
     """Create a weekly report.
 
     Args:
         report (schemas.ReportCreate): Report data to create.
+        x_auth_id (str | None): User ID from the X-Auth-Id header.
+        conn (Any): Database connection dependency.
     Returns:
         schemas.Report: The created report.
     Raises:
         HTTPException: Database error.
     """
+    if not x_auth_id:
+        raise HTTPException(status_code=401, detail="X-Auth-ID header required")
 
     try:
         with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE auth_id = %s", (x_auth_id,))
+            user = cur.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
             cur.execute(
                 """
                 INSERT INTO reports (user_id, week_start, done, todo, issues, learning_hours)
@@ -103,7 +146,7 @@ def create_report(report: schemas.ReportCreate, conn=Depends(get_db)):
                 RETURNING id, user_id, week_start, done, todo, issues, learning_hours, created_at, updated_at
                 """,
                 (
-                    report.user_id,
+                    user["id"],
                     report.week_start,
                     report.done,
                     report.todo,

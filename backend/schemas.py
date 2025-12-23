@@ -50,7 +50,7 @@ class ReportCreate(ReportBase):
         ReportBase
     """
 
-    user_id: int
+    pass
 
 
 class Report(ReportBase):
