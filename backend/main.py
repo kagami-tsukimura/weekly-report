@@ -1,5 +1,6 @@
 import os
 from typing import Annotated, List
+from urllib.parse import unquote
 
 import psycopg
 import schemas
@@ -43,7 +44,7 @@ def get_db(
             user = cur.fetchone()
 
             if not user:
-                name = x_user_name or x_auth_id.split(":")[0]
+                name = unquote(x_user_name) if x_user_name else x_auth_id.split(":")[0]
                 cur.execute(
                     "INSERT INTO users (name, auth_id) VALUES (%s, %s)",
                     (name, x_auth_id),
