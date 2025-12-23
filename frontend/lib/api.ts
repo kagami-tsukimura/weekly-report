@@ -15,7 +15,7 @@ export async function getReports(): Promise<Report[]> {
 		cache: "no-store",
 		headers: {
 			"X-Auth-ID": session.user.authId,
-			"X-User-Name": session.user.name ?? "",
+			"X-User-Name": encodeURIComponent(session.user.name ?? ""),
 		},
 	});
 

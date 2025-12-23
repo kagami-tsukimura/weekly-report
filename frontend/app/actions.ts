@@ -34,7 +34,7 @@ export async function createReport(
 			headers: {
 				"Content-Type": "application/json",
 				"X-Auth-ID": session.user.authId,
-				"X-User-Name": session.user.name ?? "",
+				"X-User-Name": encodeURIComponent(session.user.name ?? ""),
 			},
 			body: JSON.stringify({
 				week_start,
