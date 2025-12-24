@@ -37,6 +37,7 @@ def get_db(
     if not x_auth_id:
         raise HTTPException(status_code=401, detail="X-Auth-ID header required")
 
+    conn = None
     try:
         conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
         with conn.cursor() as cur:
@@ -60,7 +61,8 @@ def get_db(
         print(f"Error connecting to DB: {e}")
         raise e
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/")
@@ -245,6 +247,7 @@ def delete_report(
         with conn.cursor() as cur:
             cur.execute("SELECT id FROM users WHERE auth_id = %s", (x_auth_id,))
             user = cur.fetchone()
+
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
 
@@ -253,6 +256,7 @@ def delete_report(
                 (report_id, user["id"]),
             )
             deleted_report = cur.fetchone()
+
             if not deleted_report:
                 raise HTTPException(status_code=404, detail="Report not found")
             conn.commit()
