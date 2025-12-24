@@ -66,3 +66,17 @@ class Report(ReportBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ReportUpdate(BaseModel):
+    """Fields for updating a report.
+
+    Args:
+        BaseModel
+    """
+
+    week_start: Optional[date] = None
+    done: Optional[str] = None
+    todo: Optional[str] = None
+    issues: Optional[str] = None
+    learning_hours: Optional[float] = None
