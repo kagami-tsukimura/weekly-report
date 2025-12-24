@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { createReport, type FormState } from "@/app/actions";
 
@@ -8,11 +8,30 @@ const initialState: FormState = {
 	message: "",
 };
 
-export default function ReportForm() {
-	const [state, formAction, isPending] = useActionState(
-		createReport,
-		initialState,
-	);
+type Props = {
+	action?: (state: FormState, payload: FormData) => Promise<FormState>;
+	initialData?: {
+		week_start: string;
+		learning_hours: number;
+		done: string;
+		todo: string;
+		issues?: string;
+	};
+	onSuccess?: () => void;
+};
+
+export default function ReportForm({
+	action = createReport, // 指定なければ新規作成
+	initialData,
+	onSuccess,
+}: Props) {
+	const [state, formAction, isPending] = useActionState(action, initialState);
+
+	useEffect(() => {
+		if (!state.error && state.message && onSuccess) {
+			onSuccess();
+		}
+	}, [state, onSuccess]);
 
 	const formRef = useRef<HTMLFormElement>(null);
 
@@ -33,7 +52,7 @@ export default function ReportForm() {
 			className="bg-gray-900 border border-gray-800 p-6 rounded-xl space-y-4"
 		>
 			<h2 className="text-xl font-bold mb-4 text-gray-100">
-				Create New Report
+				{initialData ? "Edit Report" : "Create New Report"}
 			</h2>
 
 			{/* Result Area */}
@@ -57,6 +76,7 @@ export default function ReportForm() {
 					name="week_start"
 					type="date"
 					required
+					defaultValue={initialData?.week_start}
 					className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
 					disabled={isPending}
 				/>
@@ -74,6 +94,7 @@ export default function ReportForm() {
 					type="number"
 					step="0.5"
 					required
+					defaultValue={initialData?.learning_hours}
 					className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
 					disabled={isPending}
 				/>
@@ -90,6 +111,7 @@ export default function ReportForm() {
 					name="done"
 					required
 					rows={3}
+					defaultValue={initialData?.done}
 					className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
 					disabled={isPending}
 				/>
@@ -106,6 +128,7 @@ export default function ReportForm() {
 					name="todo"
 					required
 					rows={3}
+					defaultValue={initialData?.todo}
 					className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
 					disabled={isPending}
 				/>
@@ -121,6 +144,7 @@ export default function ReportForm() {
 				<textarea
 					name="issues"
 					rows={2}
+					defaultValue={initialData?.issues}
 					className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
 					disabled={isPending}
 				/>
@@ -131,7 +155,11 @@ export default function ReportForm() {
 				className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 				disabled={isPending}
 			>
-				{isPending ? "Submitting..." : "Submit Report"}
+				{isPending
+					? "Submitting..."
+					: initialData
+						? "Update Report"
+						: "Submit Report"}
 			</button>
 		</form>
 	);
