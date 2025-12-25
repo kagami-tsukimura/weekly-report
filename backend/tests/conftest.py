@@ -1,5 +1,4 @@
 import os
-import socket
 import sys
 
 import psycopg
@@ -12,13 +11,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import main  # noqa
 from main import app  # noqa
 
-# ローカル実行対応: 'db' ホストが見つからない場合は localhost にフォールバック
-try:
-    socket.gethostbyname("db")
-except socket.gaierror:
-    if main.DATABASE_URL and "@db:" in main.DATABASE_URL:
-        print("DEBUG: Patching DATABASE_URL to use localhost")
-        main.DATABASE_URL = main.DATABASE_URL.replace("@db:", "@localhost:")
+if main.DATABASE_URL and "@db:" in main.DATABASE_URL:
+    main.DATABASE_URL = main.DATABASE_URL.replace("@db:", "@localhost:")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
