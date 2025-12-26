@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import type { Report } from "@/types";
 
-// Docker内部通信に backend:8000
-const API_BASE_URL = "http://backend:8000";
+if (!process.env.API_URL) {
+	throw new Error("API_URL environment variable is required");
+}
+const API_BASE_URL = process.env.API_URL;
 
 export async function getReports(): Promise<Report[]> {
 	// Get session
