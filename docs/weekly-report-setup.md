@@ -87,7 +87,7 @@ command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
 db:
-image: postgres:16
+image: postgres:17
 environment:
 POSTGRES_USER: dev
 POSTGRES_PASSWORD: dev
