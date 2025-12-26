@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 
-if (!process.env.API_URL) {
-	throw new Error("API_URL environment variable is required");
+function getApiUrl(): string {
+	const url = process.env.API_URL;
+	if (!url) {
+		throw new Error("API_URL environment variable is required");
+	}
+	return url;
 }
-const API_BASE_URL = process.env.API_URL;
 const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
 
 export type FormState = {
@@ -32,7 +35,7 @@ export async function createReport(
 
 	try {
 		// post to backend
-		const res = await fetch(`${API_BASE_URL}/reports`, {
+		const res = await fetch(`${getApiUrl()}/reports`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -82,7 +85,7 @@ export async function updateReport(
 
 	try {
 		// put to backend
-		const res = await fetch(`${API_BASE_URL}/reports/${id}`, {
+		const res = await fetch(`${getApiUrl()}/reports/${id}`, {
 			method: "PUT",
 			headers: {
 				"Content-Type": "application/json",
@@ -119,7 +122,7 @@ export async function deleteReport(id: number): Promise<FormState> {
 		return { message: "Not authenticated", error: true };
 	}
 	try {
-		const res = await fetch(`${API_BASE_URL}/reports/${id}`, {
+		const res = await fetch(`${getApiUrl()}/reports/${id}`, {
 			method: "DELETE",
 			headers: {
 				"X-Auth-ID": session.user.authId,

@@ -1,10 +1,13 @@
 import { auth } from "@/auth";
 import type { Report } from "@/types";
 
-if (!process.env.API_URL) {
-	throw new Error("API_URL environment variable is required");
+function getApiUrl(): string {
+	const url = process.env.API_URL;
+	if (!url) {
+		throw new Error("API_URL environment variable is required");
+	}
+	return url;
 }
-const API_BASE_URL = process.env.API_URL;
 
 export async function getReports(): Promise<Report[]> {
 	// Get session
@@ -13,7 +16,7 @@ export async function getReports(): Promise<Report[]> {
 		throw new Error("Not authenticated");
 	}
 
-	const res = await fetch(`${API_BASE_URL}/reports`, {
+	const res = await fetch(`${getApiUrl()}/reports`, {
 		cache: "no-store",
 		headers: {
 			"X-Auth-ID": session.user.authId,
