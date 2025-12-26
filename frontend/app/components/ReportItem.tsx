@@ -75,13 +75,17 @@ export default function ReportItem({ report, onDeleteSuccess }: Props) {
 				<div>
 					<span className="font-bold text-green-400 mr-2">
 						Done✅
-						<span className="text-gray-300 ml-2">{report.done}</span>
+						<span className="text-gray-300 ml-2 whitespace-pre-wrap">
+							{report.done}
+						</span>
 					</span>
 				</div>
 				<div>
 					<span className="font-bold text-amber-400 mr-2">
 						ToDo🚧
-						<span className="text-gray-300 ml-2">{report.todo}</span>
+						<span className="text-gray-300 ml-2 whitespace-pre-wrap">
+							{report.todo}
+						</span>
 					</span>
 				</div>
 				<div>
@@ -93,7 +97,9 @@ export default function ReportItem({ report, onDeleteSuccess }: Props) {
 				<div>
 					<span className="font-bold text-red-400 mr-2">
 						Issue🚨
-						<span className="text-gray-300 ml-2">{report.issues}</span>
+						<span className="text-gray-300 ml-2 whitespace-pre-wrap">
+							{report.issues}
+						</span>
 					</span>
 				</div>
 			</div>
