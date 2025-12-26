@@ -13,7 +13,8 @@ services:
     env_file:
       - .env
     environment:
-      - API_URL=http://backend:8000
+      # - API_URL=http://backend:8000
+      - API_URL=https://weekly-report-api-kagami.fly.dev/
     depends_on:
       - backend
 
