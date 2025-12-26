@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createReport, type FormState } from "@/app/actions";
 
@@ -21,15 +21,24 @@ type Props = {
 };
 
 export default function ReportForm({
-	action = createReport, // 指定なければ新規作成
+	action = createReport,
 	initialData,
 	onSuccess,
 }: Props) {
 	const [state, formAction, isPending] = useActionState(action, initialState);
+	const [visibleMessage, setVisibleMessage] = useState<string | null>(null);
+	const [isError, setIsError] = useState(false);
 
 	useEffect(() => {
-		if (!state.error && state.message && onSuccess) {
-			onSuccess();
+		if (state.message) {
+			setVisibleMessage(state.message);
+			setIsError(state.error ?? false);
+
+			if (!state.error) {
+				onSuccess?.();
+				const timer = setTimeout(() => setVisibleMessage(null), 3000);
+				return () => clearTimeout(timer);
+			}
 		}
 	}, [state, onSuccess]);
 
@@ -49,18 +58,18 @@ export default function ReportForm({
 			ref={formRef}
 			action={formAction}
 			onKeyDown={handleKeyDown}
-			className="bg-gray-900 border border-gray-800 p-6 rounded-xl space-y-4"
+			className="bg-gray-900 border border-gray-800 p-6 rounded-xl space-y-4 relative"
 		>
 			<h2 className="text-xl font-bold mb-4 text-gray-100">
 				{initialData ? "Edit Report" : "Create New Report"}
 			</h2>
 
-			{/* Result Area */}
-			{state.message && (
+			{/* トースト通知 */}
+			{visibleMessage && (
 				<div
-					className={`p-3 rounded ${state.error ? "bg-red-900/50 text-red-200" : "bg-green-900/50 text-green-200"}`}
+					className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg text-sm z-10 ${isError ? "bg-red-900/80 text-red-200" : "bg-green-900/80 text-green-200"}`}
 				>
-					{state.message}
+					{visibleMessage}
 				</div>
 			)}
 

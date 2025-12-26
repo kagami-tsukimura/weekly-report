@@ -3,7 +3,7 @@ import { auth, signOut } from "@/auth";
 import { getReports } from "@/lib/api";
 import type { Report } from "@/types";
 import ReportForm from "./components/ReportForm";
-import ReportItem from "./components/ReportItem";
+import ReportList from "./components/ReportList";
 
 const UNKNOWN_ERROR_MESSAGE: string = "Unknown error occured";
 
@@ -69,12 +69,7 @@ export default async function Home() {
 			<div className="mb-12">
 				<ReportForm />
 			</div>
-			<h1 className="text-4xl font-bold mt-20 mb-4">Reports</h1>
-			<div className="flex flex-col gap-6">
-				{reports.map((report) => (
-					<ReportItem key={report.id} report={report} />
-				))}
-			</div>
+			<ReportList reports={reports} />
 		</main>
 	);
 }

@@ -9,18 +9,25 @@ import ReportForm from "./ReportForm";
 
 type Props = {
 	report: Report;
+	onDeleteSuccess?: () => void;
 };
 
-export default function ReportItem({ report }: Props) {
+export default function ReportItem({ report, onDeleteSuccess }: Props) {
 	const [isEditing, setIsEditing] = useState(false);
+	const [toast, setToast] = useState<string | null>(null);
 	const router = useRouter();
-
 	const updateAction = updateReport.bind(null, report.id);
+
+	const showToast = (message: string) => {
+		setToast(message);
+		setTimeout(() => setToast(null), 3000);
+	};
 
 	const handleDelete = async () => {
 		if (confirm("Delete this report?")) {
 			const res = await deleteReport(report.id);
 			if (res.message.includes("deleted")) {
+				onDeleteSuccess?.();
 				router.refresh();
 			} else {
 				alert(res.message);
@@ -31,10 +38,17 @@ export default function ReportItem({ report }: Props) {
 	const handleUpdateSuccess = () => {
 		setIsEditing(false);
 		router.refresh();
+		showToast("Report updated successfully!");
 	};
 
 	return (
 		<div className="border border-gray-700 rounded-xl p-6 relative group">
+			{/* Update 用トースト */}
+			{toast && (
+				<div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-900/80 text-green-200 px-4 py-2 rounded-lg text-sm z-10">
+					{toast}
+				</div>
+			)}
 			{/* 右上の操作ボタン (ホバー時のみ表示) */}
 			<div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
 				<button
