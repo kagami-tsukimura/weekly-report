@@ -67,7 +67,7 @@ def get_db(
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to Weekly Report"}
+    return {"message": "Welcome to Weekly Report!"}
 
 
 @app.get("/health")
