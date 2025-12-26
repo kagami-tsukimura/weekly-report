@@ -31,7 +31,7 @@ export default async function Home() {
 		<main className="p-8 max-w-4xl mx-auto">
 			<div className="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
 				<h1 className="text-4xl font-bold">Weekly Report</h1>
-				<div className="group relative flex items-center gap-4">
+				<div className="group relative z-20 flex items-center gap-4">
 					{session?.user?.image ? (
 						<Image
 							src={session.user.image}
