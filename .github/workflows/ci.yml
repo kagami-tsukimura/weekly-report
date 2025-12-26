@@ -47,6 +47,9 @@ jobs:
       - name: Format check with Ruff
         run: uv run ruff format --check .
 
+      - name: Run tests
+        run: uv run pytest -v
+
   frontend:
     name: Frontend (Next.js)
     runs-on: ubuntu-latest
@@ -74,9 +77,7 @@ jobs:
       - name: Build Check
         run: bun run build
         env:
-          # Build API dummy
-          NEXT_PUBLIC_API_URL: http://localhost:8000
-          # NextAuth dummy
+          API_URL: http://localhost:8000
           AUTH_SECRET: "dummy_secret_for_build_check"
           AUTH_GITHUB_ID: "dummy"
           AUTH_GITHUB_SECRET: "dummy"
