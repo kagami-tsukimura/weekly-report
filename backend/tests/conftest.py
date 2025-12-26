@@ -36,6 +36,12 @@ def db_connection():
         else:
             raise
 
+    # テスト開始前にデータをクリーンアップ（テスト分離のため）
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM reports")
+        cur.execute("DELETE FROM users")
+    conn.commit()
+
     try:
         yield conn
     finally:
