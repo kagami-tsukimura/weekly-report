@@ -12,6 +12,8 @@ services:
     command: ["bun", "dev"]
     env_file:
       - .env
+    environment:
+      - API_URL=http://backend:8000
     depends_on:
       - backend
 
