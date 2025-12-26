@@ -12,6 +12,9 @@ services:
     command: ["bun", "dev"]
     env_file:
       - .env
+    environment:
+      # - API_URL=http://backend:8000
+      - API_URL=https://weekly-report-api-kagami.fly.dev/
     depends_on:
       - backend
 
@@ -42,7 +45,7 @@ services:
       ]
 
   db:
-    image: postgres:16
+    image: postgres:17
     container_name: weekly-report-db
     env_file:
       - .env
@@ -50,6 +53,7 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   postgres_data:
