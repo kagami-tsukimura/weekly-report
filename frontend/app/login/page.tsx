@@ -38,6 +38,43 @@ export default function LoginPage() {
 							Login to Google
 						</button>
 					</form>
+
+					{process.env.APP_ENV === "test" && (
+						<div className="mt-4 border-t border-gray-600 pt-4">
+							<p className="mb-2 text-center text-sm text-gray-400">
+								Dev/Test Only
+							</p>
+							<form
+								action={async (formData) => {
+									"use server";
+									await signIn("credentials", formData);
+								}}
+								className="space-y-2"
+							>
+								<input type="hidden" name="redirectTo" value="/" />
+								<input
+									name="username"
+									type="text"
+									placeholder="Username (testuser)"
+									defaultValue="testuser"
+									className="w-full rounded bg-gray-700 px-3 py-2 text-white"
+								/>
+								<input
+									name="password"
+									type="password"
+									placeholder="Password (password)"
+									defaultValue="password"
+									className="w-full rounded bg-gray-700 px-3 py-2 text-white"
+								/>
+								<button
+									type="submit"
+									className="w-full rounded bg-blue-600 py-2 text-white hover:bg-blue-700"
+								>
+									Sign in with Credentials
+								</button>
+							</form>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

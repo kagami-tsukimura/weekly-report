@@ -14,7 +14,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +37,7 @@ def get_db(
     if not x_auth_id:
         raise HTTPException(status_code=401, detail="X-Auth-ID header required")
 
+    conn = None
     try:
         conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
         with conn.cursor() as cur:
@@ -60,12 +61,13 @@ def get_db(
         print(f"Error connecting to DB: {e}")
         raise e
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Weekly Report"}
+    return {"message": "Welcome to Weekly Report"}
 
 
 @app.get("/health")
@@ -162,4 +164,107 @@ def create_report(
     except Exception as e:
         conn.rollback()
         print(f"Error creating report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/reports/{report_id}", response_model=schemas.Report)
+def update_report(
+    report_id: int,
+    report: schemas.ReportUpdate,
+    x_auth_id: Annotated[str | None, Header()] = None,
+    conn=Depends(get_db),
+):
+    """Update a weekly report.
+    Args:
+        report_id (int): Report ID to update.
+        report (schemas.ReportUpdate): Report data to update.
+        x_auth_id (str | None): User ID from the X-Auth-Id header.
+        conn (Any): Database connection dependency.
+    """
+    if not x_auth_id:
+        raise HTTPException(status_code=401, detail="X-Auth-ID header required")
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE auth_id= %s", (x_auth_id,))
+            user = cur.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            cur.execute(
+                "SELECT id FROM reports WHERE id = %s AND user_id = %s",
+                (report_id, user["id"]),
+            )
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Report not found")
+
+            update_fields = []
+            values = []
+            for field, value in report.model_dump(exclude_unset=True).items():
+                update_fields.append(f"{field} = %s")
+                values.append(value)
+            if not update_fields:
+                raise HTTPException(status_code=400, detail="No fields to update")
+
+            values.append(report_id)
+            cur.execute(
+                f"""
+                UPDATE reports SET {", ".join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                RETURNING id, user_id, week_start, done, todo, issues, learning_hours, created_at, updated_at
+                """,
+                tuple(values),
+            )
+            result = cur.fetchone()
+            conn.commit()
+            return result
+
+    except HTTPException as e:
+        conn.rollback()
+        raise e
+
+    except Exception as e:
+        print(f"Error updating report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/reports/{report_id}")
+def delete_report(
+    report_id: int,
+    x_auth_id: Annotated[str | None, Header()] = None,
+    conn=Depends(get_db),
+):
+    """Delete a weekly report.
+    Args:
+        report_id (int): Report ID to delete.
+        x_auth_id (str | None): User ID from the X-Auth-Id header.
+        conn (Any): Database connection dependency.
+    """
+    if not x_auth_id:
+        raise HTTPException(status_code=401, detail="X-Auth-ID header required")
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE auth_id = %s", (x_auth_id,))
+            user = cur.fetchone()
+
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            cur.execute(
+                "DELETE FROM reports WHERE id = %s AND user_id = %s RETURNING id",
+                (report_id, user["id"]),
+            )
+            deleted_report = cur.fetchone()
+
+            if not deleted_report:
+                raise HTTPException(status_code=404, detail="Report not found")
+            conn.commit()
+            return {"message": "Report deleted"}
+    except HTTPException as e:
+        conn.rollback()
+        raise e
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting report: {e}")
         raise HTTPException(status_code=500, detail=str(e))

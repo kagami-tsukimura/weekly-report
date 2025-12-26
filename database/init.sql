@@ -36,3 +36,10 @@ USING (user_id IN (SELECT id FROM users WHERE auth_id = current_setting('app.cur
 
 CREATE POLICY insert_own_reports ON reports FOR INSERT
 WITH CHECK (user_id IN (SELECT id FROM users WHERE auth_id = current_setting('app.current_user_id', true)));
+
+CREATE POLICY update_own_reports ON reports FOR UPDATE
+USING (user_id IN (SELECT id FROM users WHERE auth_id = current_setting('app.current_user_id', true)))
+WITH CHECK (user_id IN (SELECT id FROM users WHERE auth_id = current_setting('app.current_user_id', true)));
+
+CREATE POLICY delete_own_reports ON reports FOR DELETE
+USING (user_id IN (SELECT id FROM users WHERE auth_id = current_setting('app.current_user_id', true)));

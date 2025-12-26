@@ -1,8 +1,13 @@
 import { auth } from "@/auth";
 import type { Report } from "@/types";
 
-// Docker内部通信に backend:8000
-const API_BASE_URL = "http://backend:8000";
+function getApiUrl(): string {
+	const url = process.env.API_URL;
+	if (!url) {
+		throw new Error("API_URL environment variable is required");
+	}
+	return url;
+}
 
 export async function getReports(): Promise<Report[]> {
 	// Get session
@@ -11,7 +16,7 @@ export async function getReports(): Promise<Report[]> {
 		throw new Error("Not authenticated");
 	}
 
-	const res = await fetch(`${API_BASE_URL}/reports`, {
+	const res = await fetch(`${getApiUrl()}/reports`, {
 		cache: "no-store",
 		headers: {
 			"X-Auth-ID": session.user.authId,
