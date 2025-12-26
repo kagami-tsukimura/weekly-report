@@ -69,7 +69,7 @@ jobs:
       - name: Run tests
         run: uv run pytest -v
         env:
-          DATABASE_URL: postgresql://dev:dev@localhost:5432/weekly_report
+          DATABASE_URL: postgresql://app_user:app_password@localhost:5432/weekly_report
 
   frontend:
     name: Frontend (Next.js)
